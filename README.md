@@ -17,7 +17,7 @@ Type `@` and a dropdown appears with the online players, exactly like vanilla co
 autocomplete — arrow keys to move, `Tab` to complete, mouse works too.
 
 ```
-@Steve 服务器几点重启？
+@Steve when does the server restart?
 ```
 
 Whoever is mentioned hears a note-block *ding* and sees the whole message in gold. Everyone else
@@ -50,13 +50,13 @@ Clicking `↩` does not dump a wall of text into your input. Instead a small bar
 the input:
 
 ```
-↩ “<Steve> 服务器几点重启？”                                     x
+↩ “<Steve> when does the server restart?”                         x
 ```
 
 Type your reply and hit Enter. It is sent as:
 
 ```
-@Steve “<Steve> 服务器几点重启？” 晚上八点
+@Steve “<Steve> when does the server restart?” 8pm
 ```
 
 Every client with the mod renders the quoted part as its own grey italic line above the reply, and
@@ -69,13 +69,13 @@ already calling him, so dropping that would lose information.
 
 ```
 <Alex>  Hi@Steve
-<you>   @Alex “<Alex> Hi@Steve” 我看看        → Steve is pinged too
+<you>   @Alex “<Alex> Hi@Steve” let me check   → Steve is pinged too
 ```
 
 ### `@admin`
 
 ```
-@admin 有人在刷屏
+@admin someone is spamming
 ```
 
 Mentioning `@admin` pings every online admin at once. Rendered in red bold so it is obvious this is
@@ -204,7 +204,7 @@ it follows the player's language setting.
 | File | |
 | --- | --- |
 | `assets/chatping/lang/en_us.json` | English (source of truth) |
-| `assets/chatping/lang/zh_cn.json` | 简体中文 |
+| `assets/chatping/lang/zh_cn.json` | Simplified Chinese |
 
 To add a language, drop a `<locale>.json` next to those two with the same keys. The keys are listed
 in `en_us.json`; anything missing falls back to English.
