@@ -28,4 +28,16 @@ public interface ChatHudAccessor {
     /** 原版的私有方法：按当前宽度把 {@code messages} 重新折行成 {@code visibleMessages}。 */
     @Invoker("refreshTrimmedMessage")
     void chatping$refresh();
+
+    /**
+     * 聊天栏缩放。
+     *
+     * <p>1.21.11 把这个方法改成了 private，直接调编译不过，所以统一走 accessor。</p>
+     */
+    @Invoker("getScale")
+    double chatping$getScale();
+
+    /** 聊天栏宽度（像素），同样在 1.21.11 变 private。 */
+    @Invoker("getWidth")
+    int chatping$getChatWidth();
 }

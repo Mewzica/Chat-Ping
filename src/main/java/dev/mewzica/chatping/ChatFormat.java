@@ -277,7 +277,7 @@ public final class ChatFormat {
             return false;
         }
         for (PlayerInfo entry : client.getConnection().getOnlinePlayers()) {
-            if (entry.getProfile().getName().equalsIgnoreCase(name)) {
+            if (Compat.profileName(entry.getProfile()).equalsIgnoreCase(name)) {
                 return true;
             }
         }

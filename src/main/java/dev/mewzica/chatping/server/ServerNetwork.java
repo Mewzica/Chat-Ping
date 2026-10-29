@@ -1,5 +1,6 @@
 package dev.mewzica.chatping.server;
 
+import dev.mewzica.chatping.Compat;
 import dev.mewzica.chatping.ChatText;
 import dev.mewzica.chatping.net.Net;
 import net.minecraft.server.MinecraftServer;
@@ -105,7 +106,7 @@ public final class ServerNetwork {
         }
 
         ChatPingServer.LOGGER.info("[purge] {} ({}) removed {}: [{}]",
-                player.getGameProfile().getName(),
+                Compat.profileName(player.getGameProfile()),
                 admin ? "admin" : "author",
                 entry != null ? "message" : "system-message",
                 display);

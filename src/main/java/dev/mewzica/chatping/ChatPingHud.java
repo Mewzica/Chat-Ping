@@ -1,5 +1,6 @@
 package dev.mewzica.chatping;
 
+import dev.mewzica.chatping.mixin.ChatHudAccessor;
 import dev.mewzica.chatping.net.ServerPresence;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -113,7 +114,8 @@ public final class ChatPingHud {
             return;
         }
 
-        double scale = hud.getScale();
+        // getScale()/getWidth() 在 1.21.11 变成了 private，只能走 accessor
+double scale = ((ChatHudAccessor) hud).chatping$getScale();
         if (scale <= 0.0D) {
             return;
         }
@@ -158,7 +160,7 @@ public final class ChatPingHud {
         hoveredLine = line;
         hoveredOwn = own;
 
-        int width = (int) Math.ceil(hud.getWidth() / scale);
+        int width = (int) Math.ceil(((ChatHudAccessor) hud).chatping$getChatWidth() / scale);
         // 从右边缘往左依次占槽。@ ↩ 的位置和以前完全一样，
         // 这样别人的消息多出一个 ✕ 时，@ ↩ 也不会跟着左右乱跳。
         int slot = width - ICON_W;

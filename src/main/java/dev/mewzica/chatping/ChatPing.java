@@ -53,7 +53,7 @@ public final class ChatPing {
         boolean adminCall = !mentioned
                 && ChatText.mentionsAdmins(flat)
                 && !ChatFormat.isOnlinePlayer(ChatText.ADMIN_NAME)
-                && client.player.hasPermissions(2);
+                && Compat.hasOpLevel(client.player, 2);
         if (!mentioned && !adminCall) {
             return;
         }

@@ -184,11 +184,11 @@ public final class Net {
 
     public static void registerServerReceivers() {
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Edit.TYPE,
-                (payload, context) -> context.player().server.execute(() -> ServerNetwork.onEditRequest(
-                        context.player().server, context.player(), payload.oldBody(), payload.newText())));
+                (payload, context) -> context.player().level().getServer().execute(() -> ServerNetwork.onEditRequest(
+                        context.player().level().getServer(), context.player(), payload.oldBody(), payload.newText())));
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Purge.TYPE,
-                (payload, context) -> context.player().server.execute(() -> ServerNetwork.onPurgeRequest(
-                        context.player().server, context.player(), payload.senderName(), payload.body(), payload.display())));
+                (payload, context) -> context.player().level().getServer().execute(() -> ServerNetwork.onPurgeRequest(
+                        context.player().level().getServer(), context.player(), payload.senderName(), payload.body(), payload.display())));
     }
     *///?} else {
 

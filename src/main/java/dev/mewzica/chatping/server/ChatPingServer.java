@@ -1,5 +1,6 @@
 package dev.mewzica.chatping.server;
 
+import dev.mewzica.chatping.Compat;
 import dev.mewzica.chatping.ChatText;
 import dev.mewzica.chatping.net.Net;
 import net.fabricmc.api.ModInitializer;
@@ -83,7 +84,7 @@ public class ChatPingServer implements ModInitializer {
                 return;
             }
             // formatted 是原版加过 <名字> 前缀之后真正发出去的那串，编辑时要用它还原前缀
-            MessageLog.record(sender.getUUID(), sender.getGameProfile().getName(),
+            MessageLog.record(sender.getUUID(), Compat.profileName(sender.getGameProfile()),
                     content, message.decoratedContent().getString());
             dingMentioned(sender, content);
         });
@@ -136,7 +137,7 @@ public class ChatPingServer implements ModInitializer {
         if (content.indexOf('@') < 0) {
             return;
         }
-        MinecraftServer server = sender.getServer();
+        MinecraftServer server = sender.level().getServer();
         if (server == null) {
             return;
         }
@@ -145,7 +146,7 @@ public class ChatPingServer implements ModInitializer {
         // 真有人叫 admin 的时候，@admin 就是普通提及，不该把管理员一起叫起来
         boolean adminNameTaken = false;
         for (ServerPlayer player : players) {
-            if (ChatText.ADMIN_NAME.equalsIgnoreCase(player.getGameProfile().getName())) {
+            if (ChatText.ADMIN_NAME.equalsIgnoreCase(Compat.profileName(player.getGameProfile()))) {
                 adminNameTaken = true;
                 break;
             }
@@ -157,7 +158,7 @@ public class ChatPingServer implements ModInitializer {
             if (player == sender) {
                 continue;   // 自己发的不用提醒自己
             }
-            String name = player.getGameProfile().getName();
+            String name = Compat.profileName(player.getGameProfile());
             if (ChatText.mentions(content, name) || (group && receivesAdminMention(player))) {
                 playDing(player);
             }

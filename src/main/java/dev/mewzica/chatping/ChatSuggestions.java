@@ -76,7 +76,7 @@ public final class ChatSuggestions {
         }
         List<String> names = new ArrayList<>();
         for (PlayerInfo entry : client.getConnection().getOnlinePlayers()) {
-            String name = entry.getProfile().getName();
+            String name = Compat.profileName(entry.getProfile());
             if (name != null && !name.isEmpty()) {
                 names.add(name);
             }

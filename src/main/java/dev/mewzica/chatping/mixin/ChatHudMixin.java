@@ -41,7 +41,21 @@ public abstract class ChatHudMixin {
     /**
      * 原版画每一行聊天文字都会走这里（只有这一个调用点用的是 FormattedCharSequence 重载），
      * 借它拿到这一行的精确 y 坐标，画完文字后顺便把悬停图标补上。
+     *
+     * <p>1.21.11 把 {@code GuiGraphics#drawString} 的返回值从 {@code int}（画完后的 x）
+     * 改成了 {@code void}，所以重定向的描述符和返回值都得跟着换一套。</p>
      */
+    //? if >=1.21.11 {
+    /*@Redirect(method = "render",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/GuiGraphics;drawString"
+                            + "(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;III)V"))
+    private void chatping$drawChatLine(GuiGraphics context, Font textRenderer, FormattedCharSequence text,
+                                       int x, int y, int color) {
+        context.drawString(textRenderer, text, x, y, color);
+        ChatPingHud.onLineRendered((ChatComponent) (Object) this, context, textRenderer, text, y);
+    }
+    *///?} else {
     @Redirect(method = "render",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/GuiGraphics;drawString"
@@ -52,6 +66,7 @@ public abstract class ChatHudMixin {
         ChatPingHud.onLineRendered((ChatComponent) (Object) this, context, textRenderer, text, y);
         return result;
     }
+    //?}
 
     /**
      * 所有聊天消息进 ChatComponent 之前先过一遍：判断有没有 @ 自己（播音效），

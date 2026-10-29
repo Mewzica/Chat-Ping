@@ -1,5 +1,6 @@
 package dev.mewzica.chatping.server;
 
+import dev.mewzica.chatping.Compat;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -63,7 +64,7 @@ public final class NodePermissions {
                 // 权限插件内部炸了不能带着聊天功能一起挂，退回原版判断
             }
         }
-        return player.hasPermissions(defaultLevel);
+        return Compat.hasOpLevel(player, defaultLevel);
     }
 
     /** 只解析一次，之后复用同一个 {@link Method}。 */
