@@ -163,6 +163,11 @@ total. Two pieces make that possible:
   no Yarn mappings at all, and the two naming schemes disagree on essentially every class name
   (`MinecraftClient` / `Minecraft`, `DrawContext` / `GuiGraphics`, …), so one codebase can only
   cover the whole range under a single set of names.
+- **26.x ships unobfuscated.** From 26.1 Mojang no longer publishes mappings and the client jar
+  already carries real names, so those five versions skip mappings altogether and apply
+  `net.fabricmc.fabric-loom` — the newer plugin that turns obfuscation off — instead of the
+  classic `fabric-loom`. Both are declared in `build.gradle` and exactly one is applied per
+  version.
 
 Fabric is the primary loader and the only one shipping today. Quilt is planned to reuse the Fabric
 jar (Quilt Loader loads `fabric.mod.json` natively); Forge (≤ 1.20.4) and NeoForge still need a

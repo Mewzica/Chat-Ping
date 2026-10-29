@@ -6,7 +6,11 @@ import dev.mewzica.chatping.net.Net;
 import dev.mewzica.chatping.net.ServerPresence;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessage;
+*///?} else {
 import net.minecraft.client.GuiMessage;
+//?}
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
 
@@ -77,9 +81,8 @@ public final class ChatEditor {
         editingBody = body;
 
         // 原消息变蓝：整条消息的所有片段统一刷成青色，一眼能看出「这条正在改」。
-        messages.set(index, new GuiMessage(line.addedTime(),
-                ChatFormat.tint(line.content(), ChatFormat.EDITING_COLOR),
-                line.signature(), line.tag()));
+        messages.set(index, withContent(line,
+                ChatFormat.tint(line.content(), ChatFormat.EDITING_COLOR)));
         refresh();
 
         ((ChatScreenInvoker) screen).chatping$insertText(body, true);
@@ -186,9 +189,8 @@ public final class ChatEditor {
             PendingReply.clear();
         }
 
-        messages.set(index, new GuiMessage(line.addedTime(),
-                ChatFormat.decorate(Component.literal(newRaw)),
-                line.signature(), line.tag()));
+        messages.set(index, withContent(line,
+                ChatFormat.decorate(Component.literal(newRaw))));
         refresh();
     }
 
@@ -246,12 +248,28 @@ public final class ChatEditor {
     // ------------------------------------------------------------------
 
     private static List<GuiMessage> messages() {
-        return ((ChatHudAccessor) Minecraft.getInstance().gui.getChat()).chatping$getMessages();
+        return ((ChatHudAccessor) ClientCompat.chat()).chatping$getMessages();
     }
 
     private static void refresh() {
-        ChatComponent hud = Minecraft.getInstance().gui.getChat();
+        ChatComponent hud = ClientCompat.chat();
         ((ChatHudAccessor) hud).chatping$refresh();
+    }
+
+    /**
+     * 拿一条已有消息当模板，只换正文。
+     *
+     * <p>26.1 给 {@code GuiMessage} 加了第四个字段 {@code source}（记录这条是玩家说的
+     * 还是系统消息），构造器从 4 个参数变成 5 个。原地改一条消息时把原对象的
+     * {@code source} 原样带过去，语义才不会变。</p>
+     */
+    private static GuiMessage withContent(GuiMessage line, Component content) {
+        //? if >=26.1 {
+        /*return new GuiMessage(line.addedTime(), content, line.signature(),
+                line.source(), line.tag());
+        *///?} else {
+        return new GuiMessage(line.addedTime(), content, line.signature(), line.tag());
+        //?}
     }
 
     /**

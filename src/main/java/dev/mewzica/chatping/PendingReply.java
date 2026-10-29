@@ -2,7 +2,6 @@ package dev.mewzica.chatping;
 
 import dev.mewzica.chatping.mixin.ChatScreenInvoker;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -81,7 +80,7 @@ public final class PendingReply {
         return mention + ChatText.QUOTE_OPEN + quote + ChatText.QUOTE_CLOSE + " ";
     }
 
-    public static void render(GuiGraphics context, Font textRenderer, ChatScreen screen,
+    public static void render(Object context, Font textRenderer, ChatScreen screen,
                               int mouseX, int mouseY) {
         if (!has()) {
             return;
@@ -93,7 +92,7 @@ public final class PendingReply {
         int bottom = field.getY() - 2;
         int top = bottom - BAR_H;
 
-        context.fill(left, top, right, bottom, BG);
+        Draw.fill(context, left, top, right, bottom, BG);
 
         xRight = right - 2;
         xLeft = xRight - 9;
@@ -106,13 +105,13 @@ public final class PendingReply {
             // 走语言文件，切语言自动跟着变；取成 String 只是为了按像素宽度截断
             String shown = textRenderer.plainSubstrByWidth(
                     Component.translatable("chatping.edit.banner").getString(), xLeft - left - 6);
-            context.drawString(textRenderer, shown, left + 3, top + 2, FG_EDIT);
+            Draw.text(context, textRenderer, shown, left + 3, top + 2, FG_EDIT);
         } else {
             String label = "\u21A9 " + ChatText.QUOTE_OPEN + quote + ChatText.QUOTE_CLOSE;
             String shown = textRenderer.plainSubstrByWidth(label, xLeft - left - 6);
-            context.drawString(textRenderer, shown, left + 3, top + 2, FG_QUOTE);
+            Draw.text(context, textRenderer, shown, left + 3, top + 2, FG_QUOTE);
         }
-        context.drawString(textRenderer, "x", xLeft + 1, top + 2,
+        Draw.text(context, textRenderer, "x", xLeft + 1, top + 2,
                 hoverX ? FG_X_HOVER : FG_X);
     }
 

@@ -130,11 +130,35 @@ public final class Net {
 
     // 注册 payload 类型。客户端和服务端都要跑（在共用初始化里调一次就够）。
     public static void registerPayloads() {
-        PayloadTypeRegistry.playS2C().register(Handshake.TYPE, Handshake.CODEC);
-        PayloadTypeRegistry.playC2S().register(Edit.TYPE, Edit.CODEC);
-        PayloadTypeRegistry.playC2S().register(Purge.TYPE, Purge.CODEC);
-        PayloadTypeRegistry.playS2C().register(Update.TYPE, Update.CODEC);
-        PayloadTypeRegistry.playS2C().register(Remove.TYPE, Remove.CODEC);
+        registerPayload(true, Handshake.TYPE, Handshake.CODEC);
+        registerPayload(false, Edit.TYPE, Edit.CODEC);
+        registerPayload(false, Purge.TYPE, Purge.CODEC);
+        registerPayload(true, Update.TYPE, Update.CODEC);
+        registerPayload(true, Remove.TYPE, Remove.CODEC);
+    }
+
+    // 26.1 把 PayloadTypeRegistry.playS2C()/playC2S() 改名成 clientboundPlay()/serverboundPlay()。
+    // 这段整体被包在 Stonecutter 的块注释里（1.20.5 以前的版本根本没有这些类），
+    // 里面没法再嵌 //? if —— Java 的块注释不能嵌套，内层的结束标记会把外层提前闭合。
+    // 所以这里按方法名反射挑一个，只在启动时跑 5 次。
+    private static void registerPayload(boolean toClient,
+                                        CustomPacketPayload.Type<?> type,
+                                        StreamCodec<?, ?> codec) {
+        try {
+            Object registry;
+            try {
+                registry = PayloadTypeRegistry.class
+                        .getMethod(toClient ? "clientboundPlay" : "serverboundPlay").invoke(null);
+            } catch (NoSuchMethodException older) {
+                registry = PayloadTypeRegistry.class
+                        .getMethod(toClient ? "playS2C" : "playC2S").invoke(null);
+            }
+            PayloadTypeRegistry.class
+                    .getMethod("register", CustomPacketPayload.Type.class, StreamCodec.class)
+                    .invoke(registry, type, codec);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("ChatPing: 注册 payload 失败 " + type, e);
+        }
     }
 
     public static boolean canReceiveHandshake(ServerPlayer player) {

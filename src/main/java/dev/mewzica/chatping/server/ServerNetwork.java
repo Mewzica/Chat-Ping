@@ -153,7 +153,9 @@ public final class ServerNetwork {
     }
 
     private static void warn(ServerPlayer player, MutableComponent message) {
-        player.displayClientMessage(Component.literal("[ChatPing] ").withStyle(ChatFormatting.GRAY)
+        // sendSystemMessage(Component, boolean) 从 1.20.1 到 26.x 都在；
+        // displayClientMessage 在 26.1 被删了，所以统一用这个。
+        player.sendSystemMessage(Component.literal("[ChatPing] ").withStyle(ChatFormatting.GRAY)
                 .append(message.withStyle(ChatFormatting.RED)), false);
     }
 }

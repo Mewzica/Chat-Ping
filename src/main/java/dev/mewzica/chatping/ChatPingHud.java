@@ -4,7 +4,6 @@ import dev.mewzica.chatping.mixin.ChatHudAccessor;
 import dev.mewzica.chatping.net.ServerPresence;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.util.FormattedCharSequence;
@@ -100,7 +99,7 @@ public final class ChatPingHud {
      *
      * @param y 这一行文字在聊天坐标系里的顶部 y
      */
-    public static void onLineRendered(ChatComponent hud, GuiGraphics context, Font textRenderer,
+    public static void onLineRendered(ChatComponent hud, Object context, Font textRenderer,
                                       FormattedCharSequence text, int y) {
         String flat = flatten(text);
         if (previousWasEnd) {
@@ -110,12 +109,12 @@ public final class ChatPingHud {
         previousWasEnd = endOfEntry;
 
         Minecraft client = Minecraft.getInstance();
-        if (!(client.screen instanceof ChatScreen)) {
+        if (!(ClientCompat.screen() instanceof ChatScreen)) {
             return;
         }
 
         // getScale()/getWidth() 在 1.21.11 变成了 private，只能走 accessor
-double scale = ((ChatHudAccessor) hud).chatping$getScale();
+        double scale = ((ChatHudAccessor) hud).chatping$getScale();
         if (scale <= 0.0D) {
             return;
         }
@@ -208,7 +207,7 @@ double scale = ((ChatHudAccessor) hud).chatping$getScale();
         }
 
         // 不透明底衬，避免长消息的文字从图标底下透出来
-        context.fill(leftmost - 3, y - 2, width + 1, y + 11, COLOR_BACKDROP);
+        Draw.fill(context, leftmost - 3, y - 2, width + 1, y + 11, COLOR_BACKDROP);
 
         if (system) {
             drawIcon(context, textRenderer, DELETE_GLYPH, deleteLeft, y,
@@ -229,9 +228,9 @@ double scale = ((ChatHudAccessor) hud).chatping$getScale();
         }
     }
 
-    private static void drawIcon(GuiGraphics context, Font textRenderer,
+    private static void drawIcon(Object context, Font textRenderer,
                                  String glyph, int left, int y, int color) {
-        context.drawString(textRenderer, glyph,
+        Draw.text(context, textRenderer, glyph,
                 left + (ICON_W - textRenderer.width(glyph)) / 2, y, color);
     }
 

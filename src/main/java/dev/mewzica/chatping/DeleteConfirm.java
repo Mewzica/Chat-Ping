@@ -1,7 +1,6 @@
 package dev.mewzica.chatping;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -91,22 +90,22 @@ public final class DeleteConfirm {
         subtitle = null;
     }
 
-    public static void render(GuiGraphics context, Font textRenderer, int mouseX, int mouseY) {
+    public static void render(Object context, Font textRenderer, int mouseX, int mouseY) {
         if (!open) {
             return;
         }
 
         // tooltip 风格：外层紫边 + 内层深紫边 + 深底
-        context.fill(panelX, panelY, panelX + PANEL_W, panelY + PANEL_H, BORDER_OUTER);
-        context.fill(panelX + 1, panelY + 1, panelX + PANEL_W - 1, panelY + PANEL_H - 1, BORDER_INNER);
-        context.fill(panelX + 2, panelY + 2, panelX + PANEL_W - 2, panelY + PANEL_H - 2, PANEL_BG);
+        Draw.fill(context, panelX, panelY, panelX + PANEL_W, panelY + PANEL_H, BORDER_OUTER);
+        Draw.fill(context, panelX + 1, panelY + 1, panelX + PANEL_W - 1, panelY + PANEL_H - 1, BORDER_INNER);
+        Draw.fill(context, panelX + 2, panelY + 2, panelX + PANEL_W - 2, panelY + PANEL_H - 2, PANEL_BG);
 
         Component title = Component.translatable("chatping.delete.title");
         int titleX = panelX + (PANEL_W - textRenderer.width(title)) / 2;
-        context.drawString(textRenderer, title, titleX, panelY + 6, TEXT_COLOR);
+        Draw.text(context, textRenderer, title, titleX, panelY + 6, TEXT_COLOR);
 
         int subX = panelX + (PANEL_W - textRenderer.width(subtitle)) / 2;
-        context.drawString(textRenderer, subtitle, subX, panelY + 18, SUBTITLE_COLOR);
+        Draw.text(context, textRenderer, subtitle, subX, panelY + 18, SUBTITLE_COLOR);
 
         int btnY = panelY + PANEL_H - BTN_H - 4;
         int yesX = panelX + 4;
@@ -145,15 +144,15 @@ public final class DeleteConfirm {
         return mouseX >= x && mouseX < x + BTN_W && mouseY >= y && mouseY < y + BTN_H;
     }
 
-    private static void drawButton(GuiGraphics context, Font textRenderer,
+    private static void drawButton(Object context, Font textRenderer,
                                    int x, int y, Component label, boolean hover) {
-        context.fill(x, y, x + BTN_W, y + BTN_H, hover ? BTN_BG_HOVER : BTN_BG);
-        context.fill(x, y, x + BTN_W, y + 1, hover ? 0xFF9AA8BF : BTN_LIGHT);
-        context.fill(x, y, x + 1, y + BTN_H, hover ? 0xFF9AA8BF : BTN_LIGHT);
-        context.fill(x, y + BTN_H - 1, x + BTN_W, y + BTN_H, BTN_DARK);
-        context.fill(x + BTN_W - 1, y, x + BTN_W, y + BTN_H, BTN_DARK);
+        Draw.fill(context, x, y, x + BTN_W, y + BTN_H, hover ? BTN_BG_HOVER : BTN_BG);
+        Draw.fill(context, x, y, x + BTN_W, y + 1, hover ? 0xFF9AA8BF : BTN_LIGHT);
+        Draw.fill(context, x, y, x + 1, y + BTN_H, hover ? 0xFF9AA8BF : BTN_LIGHT);
+        Draw.fill(context, x, y + BTN_H - 1, x + BTN_W, y + BTN_H, BTN_DARK);
+        Draw.fill(context, x + BTN_W - 1, y, x + BTN_W, y + BTN_H, BTN_DARK);
 
         int textX = x + (BTN_W - textRenderer.width(label)) / 2;
-        context.drawString(textRenderer, label, textX, y + 2, BTN_TEXT);
+        Draw.text(context, textRenderer, label, textX, y + 2, BTN_TEXT);
     }
 }
