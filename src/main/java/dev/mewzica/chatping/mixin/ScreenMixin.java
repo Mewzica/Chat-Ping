@@ -8,10 +8,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-//? if <1.21.11 {
-/*import net.minecraft.client.gui.screens.Screen;
-*///?}
-
 /**
  * 聊天里点 {@code @名字} 的时候，原版会把输入框内容整个换成建议文本。
  * 这里改成「往当前输入框里追加」，避免把已经打了一半的内容冲掉。
@@ -27,14 +23,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * <p>取点击事件里的文本统一交给 {@link ChatFormat#clickSuggestion(Style)}，
  * 那边处理 {@code ClickEvent} 在 1.21.5 的改版。</p>
+ *
+ * <p>条件一律写 {@code >=}：这个 Stonecutter 配置下 {@code <} 恒为 false，
+ * 写 {@code <1.21.11} 会被渲染成 1.21.11 那一支，编译能过、运行期注入失败。
+ * 所以新版本的实现放 if 支、老版本的放 else 支。</p>
  */
-//? if <1.21.11 {
-/*@Mixin(Screen.class)
+//? if >=1.21.11 {
+/*@Mixin(ChatScreen.class)
 public abstract class ScreenMixin {
 
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
-    private void chatping$onTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        if (!((Object) this instanceof ChatScreen)) {
+    private void chatping$onTextClick(Style style, boolean insertionClickMode,
+                                      CallbackInfoReturnable<Boolean> cir) {
+        // insertionClickMode 是原版「点击就插入」那条路，交给它自己处理。
+        if (insertionClickMode) {
             return;
         }
         String insert = ChatFormat.clickSuggestion(style);
@@ -46,14 +48,14 @@ public abstract class ScreenMixin {
     }
 }
 *///?} else {
-@Mixin(ChatScreen.class)
+import net.minecraft.client.gui.screens.Screen;
+
+@Mixin(Screen.class)
 public abstract class ScreenMixin {
 
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
-    private void chatping$onTextClick(Style style, boolean insertionClickMode,
-                                      CallbackInfoReturnable<Boolean> cir) {
-        // insertionClickMode 是原版「点击就插入」那条路，交给它自己处理。
-        if (insertionClickMode) {
+    private void chatping$onTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
+        if (!((Object) this instanceof ChatScreen)) {
             return;
         }
         String insert = ChatFormat.clickSuggestion(style);

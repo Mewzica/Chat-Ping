@@ -150,8 +150,12 @@ tasks.withType(JavaCompile).configureEach {
 
 java {
     withSourcesJar()
-    sourceCompatibility = JavaVersion.toVersion(javaVersion)
-    targetCompatibility = JavaVersion.toVersion(javaVersion)
+    // 用工具链而不是 sourceCompatibility：Loom 的 runClient / runServer 是拿这个
+    // 工具链去启动游戏进程的。不指定的话 Gradle 会用自己的 JVM（本机是 JDK 25）去跑
+    // 1.20.1，Mixin 0.8.7 读不了 major version 69 的类，服务端直接崩在 Mixin 上。
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
 }
 
 jar {
