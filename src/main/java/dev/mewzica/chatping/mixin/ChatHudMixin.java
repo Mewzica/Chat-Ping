@@ -42,10 +42,10 @@ public abstract class ChatHudMixin {
      * 原版画每一行聊天文字都会走这里（只有这一个调用点用的是 FormattedCharSequence 重载），
      * 借它拿到这一行的精确 y 坐标，画完文字后顺便把悬停图标补上。
      *
-     * <p>1.21.11 把 {@code GuiGraphics#drawString} 的返回值从 {@code int}（画完后的 x）
+     * <p>1.21.6 把 {@code GuiGraphics#drawString} 的返回值从 {@code int}（画完后的 x）
      * 改成了 {@code void}，所以重定向的描述符和返回值都得跟着换一套。</p>
      */
-    //? if >=1.21.11 {
+    //? if >=1.21.6 {
     /*@Redirect(method = "render",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/GuiGraphics;drawString"
