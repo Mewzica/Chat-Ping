@@ -66,7 +66,8 @@ jobs:
       - name: Build ${{ matrix.mc }}
         id: build
         continue-on-error: true
-        run: ./gradlew :${{ matrix.mc }}:build --stacktrace 2>&1 | tee gradle-build.log
+        run: |
+          ./gradlew :${{ matrix.mc }}:build --configure-on-demand --stacktrace 2>&1 | tee gradle-build.log
 
       # 拿不到 job 日志时，把失败尾巴打成 annotation —— annotation 是公开可读的
       - name: Report failure
