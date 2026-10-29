@@ -70,11 +70,13 @@ jobs:
           set -o pipefail
           ./gradlew :${{ matrix.mc }}:build --configure-on-demand --stacktrace 2>&1 | tee gradle-build.log
 
-      # 拿不到 job 日志时，把失败尾巴打成 annotation —— annotation 是公开可读的
+      # 拿不到 job 日志时，把真正的错误行打成 annotation —— annotation 是公开可读的。
+      # 不要打堆栈尾巴，那全是 Gradle 内部帧，看不出问题。
       - name: Report failure
         if: steps.build.outcome == 'failure'
         run: |
-          tail -c 3500 gradle-build.log | sed 's/^/::error::/'
+          grep -nE "error:|What went wrong|Could not (resolve|find|apply)|Caused by:|> Task .* FAILED" gradle-build.log \
+            | head -14 | sed 's/^/::error::/' || true
           exit 1
 
       - name: Upload jar

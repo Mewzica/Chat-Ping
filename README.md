@@ -4,8 +4,10 @@ A chat mod for Minecraft that makes `@` mentions actually noticeable — with a 
 autocomplete dropdown, hover actions on every message, quoted replies, and (when installed on the
 server) message editing and deletion.
 
-Works **client-only** out of the box. Install it on the server too and it unlocks the extra
-features listed under [Server-side features](#server-side-features).
+Works **without the server mod** out of the box. Install it on the server as well and it unlocks
+the extra features listed under [Server-side features](#server-side-features).
+
+Repository: <https://github.com/Mewzica/Chat-Ping>
 
 ---
 
@@ -23,9 +25,10 @@ autocomplete — arrow keys to move, `Tab` to complete, mouse works too.
 Whoever is mentioned hears a note-block *ding* and sees the whole message in gold. Everyone else
 sees just the `@Steve` part in blue.
 
-Usernames are `[A-Za-z0-9_]` only, so a mention ends naturally at a space, punctuation, or CJK
-character. A mention does **not** need a space in front of it — `Hi@Steve` pings Steve just like
-`Hi @Steve` does. Only e-mail-shaped text (`a@Steve.com`) is ignored.
+Usernames are `[A-Za-z0-9_]` only, so a mention ends at the first character outside that set
+(space, punctuation, or CJK character). A mention does **not** need a space in front of it —
+`Hi@Steve` pings Steve just like `Hi @Steve` does. Only e-mail-shaped text (`a@Steve.com`) is
+ignored.
 
 ### Hover actions on any message
 
@@ -35,8 +38,8 @@ Open chat and hover a message. A row of icons appears at the right edge:
 | --- | --- |
 | `@` | Appends `@<sender> ` to the chat input (does not overwrite what you already typed) |
 | `↩` | Starts a quoted reply — see below |
-| `✎` | Edit the message (own messages only, requires the server mod) |
-| `✕` | Delete the message (own messages, or anything if you are an admin) |
+| `✎` | Edit the message (own messages only; requires the server mod) |
+| `✕` | Delete the message (own messages, or anything if you are an admin; requires the server mod) |
 
 One set of icons per message, drawn on the last line — long messages that wrap do not get an icon
 row on every line.
@@ -82,8 +85,8 @@ Mentioning `@admin` pings every online admin at once. Rendered in red bold so it
 not a normal mention. If a real player happens to be named `admin`, the group mention is disabled
 and `@admin` behaves as a normal mention for that player.
 
-Sending `@admin` is not restricted — anyone can call an admin. Who *receives* it is controlled by a
-permission node (see below).
+Sending `@admin` is open to everyone. The permission node below controls only who **receives** the
+notification, not who can send it.
 
 ---
 
@@ -91,8 +94,8 @@ permission node (see below).
 
 Install ChatPing on the server as well and these become available:
 
-- **Server-sent ding** — the server sends the sound packet, so even players on a vanilla client
-  hear it. The client stops playing its own ding to avoid a double sound.
+- **Server-sent ding** — the server sends the sound packet, so the client mod does not play its
+  own ding (avoiding a double sound).
 - **Message editing** — click `✎`, the original text goes into the input, the message turns cyan,
   and the bar above the input shows `✎ Editing message`. Press Enter to commit. Broadcast to everyone.
 - **Message deletion** — click `✕`, a vanilla-styled confirmation panel appears next to the button,
@@ -101,9 +104,9 @@ Install ChatPing on the server as well and these become available:
 - **Client mod required** — if the server has the mod, clients without it are disconnected on join.
   Without this the two sides would render chat differently and edit/delete would not line up.
 
-The server keeps a **message ledger** in memory (last 30 minutes, max 500 entries). Deletions only
-mark an entry as deleted — nothing is ever removed from the ledger, so the server retains a record
-of what was deleted and by whom:
+The server keeps a **message ledger** in memory (last 30 minutes, max 500 entries). Deleting a
+message only marks its entry as deleted — it does not erase the record of who deleted what.
+Entries outside the 30-minute window are no longer available for edit or delete:
 
 ```
 [purge] Steve (admin) removed message: [<Alex> buy cheap gold here]
@@ -135,36 +138,63 @@ LuckPerms — no hard dependency.
 
 ## Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) for the matching Minecraft version.
-2. Drop `chatping-<mod-version>-<mc-version>-fabric.jar` into `.minecraft/mods/`.
-3. Install [Fabric API](https://modrinth.com/mod/fabric-api) — required since the server module
-   uses its networking and chat events.
+1. Install [Fabric Loader](https://fabricmc.net/use/) for your Minecraft version.
+2. Grab the jar whose name ends with your Minecraft version — `chatping-0.1.0-beta-1.21.4-fabric.jar`
+   is for 1.21.4, `…-1.20.1-fabric.jar` is for 1.20.1, and so on. There is no "one jar fits all"
+   build.
+3. Drop it into `.minecraft/mods/`.
+4. Install [Fabric API](https://modrinth.com/mod/fabric-api) for the same version — required, since
+   the networking and chat events come from it.
 
-For servers: put the same jar in the server's `mods/` folder. Every connecting client must have it.
+For servers: put the same jar in the server's `mods/` folder. Once the server has the mod, every
+connecting client must have it too, or it gets disconnected on join.
 
 ---
 
 ## Version support
 
-Currently built for **Minecraft 1.20.1 (Fabric)**.
+One source tree targets every Minecraft release from **1.20.1** through **26.3** — 23 versions in
+total. Two pieces make that possible:
 
-The mod uses Mojang's official mappings rather than Yarn, so that one source tree can target every
-release from 1.20.1 through the current `26.x` line (Yarn mappings stopped at 1.21.11). Multi-version
-and multi-loader support — Fabric, Quilt, Forge (≤ 1.20.4) and NeoForge — is in progress.
+- **[Stonecutter](https://stonecutter.kikugie.dev/)** splits the project into one subproject per
+  version and preprocesses the shared source with `//? if <version>` comments, so the handful of
+  places where the game API actually broke can be branched in place.
+- **Mojang's official mappings** instead of Yarn. Yarn stopped at 1.21.11 and the `26.x` line has
+  no Yarn mappings at all, and the two naming schemes disagree on essentially every class name
+  (`MinecraftClient` / `Minecraft`, `DrawContext` / `GuiGraphics`, …), so one codebase can only
+  cover the whole range under a single set of names.
+
+Fabric is the primary loader and the only one shipping today. Quilt is planned to reuse the Fabric
+jar (Quilt Loader loads `fabric.mod.json` natively); Forge (≤ 1.20.4) and NeoForge still need a
+loader abstraction for networking and events.
+
+Per-version build status is on the [Actions](https://github.com/Mewzica/Chat-Ping/actions) tab.
 
 ---
 
 ## Building
 
+The build needs **JDK 25** and the bundled wrapper (Gradle 9.8.2) — Loom 1.19.3 requires both.
+
+Build a single version:
+
 ```bash
-./gradlew build
+./gradlew :1.20.1:build --configure-on-demand
 ```
 
-The remapped jar ends up in `build/libs/`.
+The remapped jar lands in `versions/1.20.1/build/libs/`. Build everything at once with
+`./gradlew build --configure-on-demand`.
+
+`--configure-on-demand` is not optional in practice: without it Gradle configures all 23
+subprojects on every invocation, which drags in all 23 Minecraft versions and Fabric API builds
+before it even starts, and a single version that fails to configure takes down the whole build.
 
 Artifact naming is `chatping-<mod-version>-<mc-version>-<loader>.jar`, for example
-`chatping-0.1.0-beta-1.20.1-fabric.jar`. The version inside `fabric.mod.json` is the bare mod
+`chatping-0.1.0-beta-1.21.4-fabric.jar`. The version inside `fabric.mod.json` is the bare mod
 version (`0.1.0-beta`) without the MC version suffix.
+
+Per-version dependency versions live in `versions/<mc-version>/gradle.properties`
+(`fabric_api_version`); everything shared is in the root `gradle.properties`.
 
 ---
 
@@ -189,25 +219,10 @@ then asks vanilla to show the window, so scrolling, `Tab` completion and mouse s
 exactly like command autocomplete.
 
 When the server mod is present, editing and deletion go through custom packets
-(`chatping:edit`, `chatping:purge` → `chatping:update`, `chatping:remove`). Messages are located by
-sender + body for edits, and by full rendered line for deletions — system messages are not in the
-ledger at all, so the client has to report what the line looked like on screen.
-
----
-
-## Localization
-
-Nothing is hard-coded. Every string the mod shows — the delete confirmation, the edit banner, the
-server-side error messages, the kick reason — is a translation key resolved by Minecraft itself, so
-it follows the player's language setting.
-
-| File | |
-| --- | --- |
-| `assets/chatping/lang/en_us.json` | English (source of truth) |
-| `assets/chatping/lang/zh_cn.json` | Simplified Chinese |
-
-To add a language, drop a `<locale>.json` next to those two with the same keys. The keys are listed
-in `en_us.json`; anything missing falls back to English.
+(`chatping:edit`, `chatping:purge` → `chatping:update`, `chatping:remove`). Edits are located by
+sender + body. Deletions are located by the full rendered line, because the client must also be
+able to delete system messages, which are not in the ledger at all — the client reports what the
+line looked like on screen.
 
 ---
 
@@ -215,7 +230,8 @@ in `en_us.json`; anything missing falls back to English.
 
 - **Quoted replies lose server-side colours** — the quote is rebuilt from the plain text of the
   hovered line.
-- Quotes are truncated at 90 characters so a long message cannot flood the chat box.
+- Quotes are truncated at 90 characters so a long message cannot flood the chat box. Mentions inside
+  the retained part of the quote still count; mentions past the truncation point are lost.
 - The message ledger is in-memory only; restarting the server clears it, and messages older than
   30 minutes can no longer be edited or deleted.
 - `@admin` only reaches players who hold `chatping.admin.mention` (or are op, without LuckPerms).
