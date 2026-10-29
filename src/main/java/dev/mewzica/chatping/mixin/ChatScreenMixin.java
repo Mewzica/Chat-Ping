@@ -108,6 +108,7 @@ import dev.mewzica.chatping.ChatFormat;
 import dev.mewzica.chatping.ChatPingHud;
 import dev.mewzica.chatping.DeleteConfirm;
 import dev.mewzica.chatping.PendingReply;
+import dev.mewzica.chatping.ui.DiscordChat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -130,6 +131,11 @@ public abstract class ChatScreenMixin {
     private void chatping$onMouseClicked(double mouseX, double mouseY, int button,
                                          CallbackInfoReturnable<Boolean> cir) {
         if (button != 0) {
+            return;
+        }
+        // 右上角那个 ≡ 是样式开关，它永远排在最前面
+        if (DiscordChat.click(mouseX, mouseY)) {
+            cir.setReturnValue(true);
             return;
         }
         // 确认框开着的时候它优先，点哪儿都先由它处理
@@ -161,12 +167,28 @@ public abstract class ChatScreenMixin {
         cir.setReturnValue(true);
     }
 
+    /**
+     * Discord 样式下整个界面由我们自己画，原版那条渲染路径直接掐掉。
+     *
+     * <p>输入框还是原版那个 {@code EditBox}（输入法、选区、历史全都靠它），
+     * 只是每帧被挪到我们画的圆角框里再自己渲染一遍 —— 重写一个输入框
+     * 才是真的会丢功能。</p>
+     */
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void chatping$renderDiscord(GuiGraphics context, int mouseX, int mouseY,
+                                        float delta, CallbackInfo ci) {
+        if (DiscordChat.renderScreen(context, this, mouseX, mouseY, delta)) {
+            ci.cancel();
+        }
+    }
+
     /** 关闭聊天框时丢掉没发出去的回复 / 没提交的编辑。 */
     @Inject(method = "removed", at = @At("TAIL"))
     private void chatping$onRemoved(CallbackInfo ci) {
         DeleteConfirm.close();
         ChatEditor.cancelEdit();
         PendingReply.clear();
+        DiscordChat.reset();
     }
 
     /** 预览条和删除确认框都画在聊天界面最上层。 */
@@ -181,6 +203,8 @@ public abstract class ChatScreenMixin {
         if (DeleteConfirm.isOpen()) {
             DeleteConfirm.render(context, textRenderer, mouseX, mouseY);
         }
+        // 原版样式下也得留一个切换按钮，否则切过去就回不来了
+        DiscordChat.renderGearOnly(context, screen, mouseX, mouseY);
     }
 
     /**

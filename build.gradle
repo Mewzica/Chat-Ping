@@ -16,6 +16,16 @@ plugins {
 /** 当前节点的 MC 版本，例如 1.20.1 / 1.21.4 / 26.3 */
 def mcVersion = stonecutter.current.version
 
+/**
+ * 当前节点的名字。Fabric 节点就叫 MC 版本本身（{@code 1.20.1}），
+ * 其它加载器加后缀（{@code 1.20.1-neoforge}），后缀就是加载器名。
+ *
+ * <p>加载器专属的源码放在 {@code src/loader/<加载器>/java}，只把当前这个加进
+ * 源码目录 —— 业务代码（3000 多行）在各加载器之间是同一份。</p>
+ */
+def nodeName = stonecutter.current.project
+def loader = nodeName.contains('-') ? nodeName.substring(nodeName.indexOf('-') + 1) : 'fabric'
+
 /** 每个版本自己的依赖版本，放在 versions/<节点>/gradle.properties */
 def versionProps = new Properties()
 def versionPropsFile = rootProject.file("versions/${mcVersion}/gradle.properties")
@@ -58,6 +68,24 @@ group = project.maven_group
 
 base {
     archivesName = project.archives_base_name
+}
+
+// 加载器专属代码放在 platform/<加载器>/ 下，和业务代码同一个源码根 ——
+// Stonecutter 只处理标准源码根里的文件，另加 srcDir 的话版本标记不会生效。
+// 这里把「不是当前加载器」的目录排除掉就行。
+sourceSets {
+    main {
+        // 只编译当前加载器那一份实现
+        if (loader != 'fabric') {
+            java.exclude 'dev/mewzica/chatping/platform/fabric/**'
+        }
+        if (loader != 'forge') {
+            java.exclude 'dev/mewzica/chatping/platform/forge/**'
+        }
+        if (loader != 'neoforge') {
+            java.exclude 'dev/mewzica/chatping/platform/neoforge/**'
+        }
+    }
 }
 
 repositories {

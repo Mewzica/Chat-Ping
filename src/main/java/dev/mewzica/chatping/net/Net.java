@@ -1,39 +1,18 @@
 package dev.mewzica.chatping.net;
 
-import dev.mewzica.chatping.ChatEditor;
-import dev.mewzica.chatping.server.ServerNetwork;
+import dev.mewzica.chatping.platform.Platforms;
 import net.minecraft.server.level.ServerPlayer;
-
-//? if >=1.20.5 {
-/*import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-*///?} else {
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-//?}
 
 /**
  * 客户端 ↔ 服务端自定义包的门面。
  *
- * <p>为什么要这么一层：<b>Fabric 的网络 API 在 MC 1.20.5 断过一次</b>。</p>
- * <ul>
- *   <li><b>1.20.1 ~ 1.20.4</b>：通道是 {@code ResourceLocation}，包体自己往
- *       {@code FriendlyByteBuf} 里写，收包回调拿的是裸 buf；</li>
- *   <li><b>1.20.5 起</b>：MC 自己加了 {@code CustomPacketPayload} 体系，
- *       Fabric 跟着改成「先定义 payload 类型 + StreamCodec，再收发对象」，
- *       裸 buf 那套 API 直接删了。</li>
- * </ul>
+ * <p>上层（{@link dev.mewzica.chatping.ChatEditor} /
+ * {@link dev.mewzica.chatping.server.ServerNetwork} / {@code ChatPingServer}）
+ * 只认这里的一组方法，至于底下是 Fabric 的 {@code ClientPlayNetworking}、
+ * Forge 的 {@code SimpleChannel} 还是 NeoForge 的 {@code PayloadRegistrar}，
+ * 全在 {@code Platform} 的实现里。</p>
  *
- * <p>两套的调用点长得完全不一样（一个写 buf，一个 new 对象），所以把差异全部关在
- * 这个类里，上层（{@link ChatEditor} / {@link ServerNetwork} / ChatPingServer）
- * 只认 {@code Net.xxx(...)} 这一组方法，一行 {@code //? if} 都不用写。</p>
- *
- * <p>通道语义：</p>
+ * <p>通道语义（五个逻辑通道，每个加载器按自己的方式编码）：</p>
  * <ul>
  *   <li>{@code handshake} 服务端 → 客户端，告诉客户端「服务端也装了 mod」，
  *       顺便带上传「能不能删别人的消息」；</li>
@@ -48,265 +27,47 @@ public final class Net {
     private Net() {
     }
 
-    //? if >=1.20.5 {
-
-    /*// ==============================================================
-    // 1.20.5+：CustomPacketPayload + StreamCodec
-    // ==============================================================
-
-    // id 的类型在 1.21.11 从 ResourceLocation 改名成了 Identifier，
-    // 分叉放在 PayloadIds 里（这里整段在块注释中，没法再嵌 //? if）。
-
-    public record Handshake(boolean canDeleteOthers) implements CustomPacketPayload {
-        public static final Type<Handshake> TYPE = new Type<>(PayloadIds.id("handshake"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Handshake> CODEC = StreamCodec.of(
-                (buf, v) -> buf.writeBoolean(v.canDeleteOthers()),
-                buf -> new Handshake(buf.readBoolean()));
-
-        @Override
-        public Type<Handshake> type() {
-            return TYPE;
-        }
-    }
-
-    public record Edit(String oldBody, String newText) implements CustomPacketPayload {
-        public static final Type<Edit> TYPE = new Type<>(PayloadIds.id("edit"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Edit> CODEC = StreamCodec.of(
-                (buf, v) -> {
-                    buf.writeUtf(v.oldBody());
-                    buf.writeUtf(v.newText());
-                },
-                buf -> new Edit(buf.readUtf(), buf.readUtf()));
-
-        @Override
-        public Type<Edit> type() {
-            return TYPE;
-        }
-    }
-
-    public record Purge(String senderName, String body, String display) implements CustomPacketPayload {
-        public static final Type<Purge> TYPE = new Type<>(PayloadIds.id("purge"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Purge> CODEC = StreamCodec.of(
-                (buf, v) -> {
-                    buf.writeUtf(v.senderName());
-                    buf.writeUtf(v.body());
-                    buf.writeUtf(v.display());
-                },
-                buf -> new Purge(buf.readUtf(), buf.readUtf(), buf.readUtf()));
-
-        @Override
-        public Type<Purge> type() {
-            return TYPE;
-        }
-    }
-
-    public record Update(String senderName, String oldBody, String newRaw) implements CustomPacketPayload {
-        public static final Type<Update> TYPE = new Type<>(PayloadIds.id("update"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Update> CODEC = StreamCodec.of(
-                (buf, v) -> {
-                    buf.writeUtf(v.senderName());
-                    buf.writeUtf(v.oldBody());
-                    buf.writeUtf(v.newRaw());
-                },
-                buf -> new Update(buf.readUtf(), buf.readUtf(), buf.readUtf()));
-
-        @Override
-        public Type<Update> type() {
-            return TYPE;
-        }
-    }
-
-    public record Remove(String display) implements CustomPacketPayload {
-        public static final Type<Remove> TYPE = new Type<>(PayloadIds.id("remove"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Remove> CODEC = StreamCodec.of(
-                (buf, v) -> buf.writeUtf(v.display()),
-                buf -> new Remove(buf.readUtf()));
-
-        @Override
-        public Type<Remove> type() {
-            return TYPE;
-        }
-    }
-
-    // 注册 payload 类型。客户端和服务端都要跑（在共用初始化里调一次就够）。
     public static void registerPayloads() {
-        registerPayload(true, Handshake.TYPE, Handshake.CODEC);
-        registerPayload(false, Edit.TYPE, Edit.CODEC);
-        registerPayload(false, Purge.TYPE, Purge.CODEC);
-        registerPayload(true, Update.TYPE, Update.CODEC);
-        registerPayload(true, Remove.TYPE, Remove.CODEC);
-    }
-
-    // 26.1 把 PayloadTypeRegistry.playS2C()/playC2S() 改名成 clientboundPlay()/serverboundPlay()。
-    // 这段整体被包在 Stonecutter 的块注释里（1.20.5 以前的版本根本没有这些类），
-    // 里面没法再嵌 //? if —— Java 的块注释不能嵌套，内层的结束标记会把外层提前闭合。
-    // 所以这里按方法名反射挑一个，只在启动时跑 5 次。
-    private static void registerPayload(boolean toClient,
-                                        CustomPacketPayload.Type<?> type,
-                                        StreamCodec<?, ?> codec) {
-        try {
-            Object registry;
-            try {
-                registry = PayloadTypeRegistry.class
-                        .getMethod(toClient ? "clientboundPlay" : "serverboundPlay").invoke(null);
-            } catch (NoSuchMethodException older) {
-                registry = PayloadTypeRegistry.class
-                        .getMethod(toClient ? "playS2C" : "playC2S").invoke(null);
-            }
-            PayloadTypeRegistry.class
-                    .getMethod("register", CustomPacketPayload.Type.class, StreamCodec.class)
-                    .invoke(registry, type, codec);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("ChatPing: 注册 payload 失败 " + type, e);
-        }
-    }
-
-    public static boolean canReceiveHandshake(ServerPlayer player) {
-        return net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, Handshake.TYPE);
-    }
-
-    public static void sendHandshake(ServerPlayer player, boolean canDeleteOthers) {
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, new Handshake(canDeleteOthers));
-    }
-
-    public static void sendEdit(String oldBody, String newText) {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new Edit(oldBody, newText));
-    }
-
-    public static void sendPurge(String senderName, String body, String display) {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new Purge(senderName, body, display));
-    }
-
-    public static boolean canReceiveUpdate(ServerPlayer player) {
-        return net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, Update.TYPE);
-    }
-
-    public static void sendUpdate(ServerPlayer player, String senderName, String oldBody, String newRaw) {
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(
-                player, new Update(senderName, oldBody, newRaw));
-    }
-
-    public static void sendRemove(ServerPlayer player, String display) {
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, new Remove(display));
-    }
-
-    public static boolean canReceiveRemove(ServerPlayer player) {
-        return net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, Remove.TYPE);
-    }
-
-    public static void registerClientReceivers() {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(Handshake.TYPE,
-                (payload, context) -> context.client().execute(
-                        () -> ServerPresence.setActive(payload.canDeleteOthers())));
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(Update.TYPE,
-                (payload, context) -> context.client().execute(
-                        () -> ChatEditor.applyRemote(payload.senderName(), payload.oldBody(), payload.newRaw())));
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(Remove.TYPE,
-                (payload, context) -> context.client().execute(
-                        () -> ChatEditor.applyPurge(payload.display())));
+        Platforms.get().registerPayloads();
     }
 
     public static void registerServerReceivers() {
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Edit.TYPE,
-                (payload, context) -> context.player().level().getServer().execute(() -> ServerNetwork.onEditRequest(
-                        context.player().level().getServer(), context.player(), payload.oldBody(), payload.newText())));
-        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Purge.TYPE,
-                (payload, context) -> context.player().level().getServer().execute(() -> ServerNetwork.onPurgeRequest(
-                        context.player().level().getServer(), context.player(), payload.senderName(), payload.body(), payload.display())));
-    }
-    *///?} else {
-
-    // ==============================================================
-    // 1.20.1 ~ 1.20.4：ResourceLocation 通道 + 手写 FriendlyByteBuf
-    // ==============================================================
-
-    public static final ResourceLocation HANDSHAKE = new ResourceLocation("chatping", "handshake");
-    public static final ResourceLocation EDIT = new ResourceLocation("chatping", "edit");
-    public static final ResourceLocation PURGE = new ResourceLocation("chatping", "purge");
-    public static final ResourceLocation UPDATE = new ResourceLocation("chatping", "update");
-    public static final ResourceLocation REMOVE = new ResourceLocation("chatping", "remove");
-
-    /** 老版本没有 payload 类型要注册，空实现。 */
-    public static void registerPayloads() {
-    }
-
-    public static boolean canReceiveHandshake(ServerPlayer player) {
-        return ServerPlayNetworking.canSend(player, HANDSHAKE);
-    }
-
-    public static void sendHandshake(ServerPlayer player, boolean canDeleteOthers) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
-        buf.writeBoolean(canDeleteOthers);
-        ServerPlayNetworking.send(player, HANDSHAKE, buf);
-    }
-
-    public static void sendEdit(String oldBody, String newText) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
-        buf.writeUtf(oldBody);
-        buf.writeUtf(newText);
-        ClientPlayNetworking.send(EDIT, buf);
-    }
-
-    public static void sendPurge(String senderName, String body, String display) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
-        buf.writeUtf(senderName);
-        buf.writeUtf(body);
-        buf.writeUtf(display);
-        ClientPlayNetworking.send(PURGE, buf);
-    }
-
-    public static boolean canReceiveUpdate(ServerPlayer player) {
-        return ServerPlayNetworking.canSend(player, UPDATE);
-    }
-
-    public static void sendUpdate(ServerPlayer player, String senderName, String oldBody, String newRaw) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
-        buf.writeUtf(senderName);
-        buf.writeUtf(oldBody);
-        buf.writeUtf(newRaw);
-        ServerPlayNetworking.send(player, UPDATE, buf);
-    }
-
-    public static void sendRemove(ServerPlayer player, String display) {
-        FriendlyByteBuf buf = PacketByteBufs.create();
-        buf.writeUtf(display);
-        ServerPlayNetworking.send(player, REMOVE, buf);
-    }
-
-    public static boolean canReceiveRemove(ServerPlayer player) {
-        return ServerPlayNetworking.canSend(player, REMOVE);
+        Platforms.get().registerServerReceivers();
     }
 
     public static void registerClientReceivers() {
-        ClientPlayNetworking.registerGlobalReceiver(HANDSHAKE, (client, handler, buf, sender) -> {
-            boolean deleteOthers = buf.readBoolean();
-            client.execute(() -> ServerPresence.setActive(deleteOthers));
-        });
-        ClientPlayNetworking.registerGlobalReceiver(UPDATE, (client, handler, buf, sender) -> {
-            String senderName = buf.readUtf();
-            String oldBody = buf.readUtf();
-            String newRaw = buf.readUtf();
-            client.execute(() -> ChatEditor.applyRemote(senderName, oldBody, newRaw));
-        });
-        ClientPlayNetworking.registerGlobalReceiver(REMOVE, (client, handler, buf, sender) -> {
-            String display = buf.readUtf();
-            client.execute(() -> ChatEditor.applyPurge(display));
-        });
+        Platforms.get().registerClientReceivers();
     }
 
-    public static void registerServerReceivers() {
-        ServerPlayNetworking.registerGlobalReceiver(EDIT, (server, player, handler, buf, sender) -> {
-            String oldBody = buf.readUtf();
-            String newText = buf.readUtf();
-            server.execute(() -> ServerNetwork.onEditRequest(server, player, oldBody, newText));
-        });
-        ServerPlayNetworking.registerGlobalReceiver(PURGE, (server, player, handler, buf, sender) -> {
-            String senderName = buf.readUtf();
-            String body = buf.readUtf();
-            String display = buf.readUtf();
-            server.execute(() -> ServerNetwork.onPurgeRequest(server, player, senderName, body, display));
-        });
+    public static boolean canReceiveHandshake(ServerPlayer player) {
+        return Platforms.get().canReceiveHandshake(player);
     }
 
-    //?}
+    public static void sendHandshake(ServerPlayer player, boolean canDeleteOthers) {
+        Platforms.get().sendHandshake(player, canDeleteOthers);
+    }
+
+    public static void sendEdit(String oldBody, String newText) {
+        Platforms.get().sendEdit(oldBody, newText);
+    }
+
+    public static void sendPurge(String senderName, String body, String display) {
+        Platforms.get().sendPurge(senderName, body, display);
+    }
+
+    public static boolean canReceiveUpdate(ServerPlayer player) {
+        return Platforms.get().canReceiveUpdate(player);
+    }
+
+    public static void sendUpdate(ServerPlayer player, String senderName, String oldBody, String newRaw) {
+        Platforms.get().sendUpdate(player, senderName, oldBody, newRaw);
+    }
+
+    public static void sendRemove(ServerPlayer player, String display) {
+        Platforms.get().sendRemove(player, display);
+    }
+
+    public static boolean canReceiveRemove(ServerPlayer player) {
+        return Platforms.get().canReceiveRemove(player);
+    }
 }

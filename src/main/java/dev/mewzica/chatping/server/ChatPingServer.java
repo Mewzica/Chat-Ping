@@ -3,10 +3,8 @@ package dev.mewzica.chatping.server;
 import dev.mewzica.chatping.Compat;
 import dev.mewzica.chatping.ChatText;
 import dev.mewzica.chatping.net.Net;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import dev.mewzica.chatping.platform.Platform;
+import dev.mewzica.chatping.platform.ServerHooks;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,12 +22,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 服务端侧入口。
+ * 服务端侧逻辑。
  *
- * <p>注意用的是 {@link ModInitializer} 而不是 {@code DedicatedServerModInitializer} ——
- * 后者只在专用服务端调用，单人存档「开放到局域网」时跑的是内置服务端（环境仍是 CLIENT），
- * 那样就整个失效了。这里无差别注册一遍：客户端上这些事件/接收器只是躺在那儿不触发，
- * 没有副作用。</p>
+ * <p>这里一行加载器相关的代码都没有：事件由加载器实现 {@code Platform}
+ * 之后回调 {@link ServerHooks} 的四个方法，网络走 {@link Net}。
+ * 所以同一份代码在 Fabric / Forge / NeoForge 上跑的是同一个类。</p>
+ *
+ * <p>注意事件在<b>任何环境</b>都注册，不区分专用服务端和「单人开房间」——
+ * 后者跑的是内置服务端，只注册专用服务端事件会让整套功能在单人存档里失效。</p>
  *
  * <p>装了之后能做三件纯客户端做不到的事：</p>
  * <ol>
@@ -40,7 +40,7 @@ import java.util.UUID;
  *       不然两边的聊天栏长得不一样，编辑删除也对不上。</li>
  * </ol>
  */
-public class ChatPingServer implements ModInitializer {
+public final class ChatPingServer implements ServerHooks {
 
     public static final String MOD_ID = "chatping";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -51,49 +51,60 @@ public class ChatPingServer implements ModInitializer {
     /**
      * 进服之后等多久再查「客户端装没装 mod」。
      *
-     * <p>不能一进服就查：{@code ServerPlayConnectionEvents.JOIN} 触发时
-     * 客户端还没收到 {@code GameJoin}，自然也还没把 {@code minecraft:register}
-     * 发过来，这时候 {@code canSend} 一定是 false，会把所有人都踢掉。</p>
+     * <p>不能一进服就查：进服事件触发时客户端还没收到 {@code GameJoin}，
+     * 自然也还没把 {@code minecraft:register} 发过来，这时候 {@code canSend}
+     * 一定是 false，会把所有人都踢掉。</p>
      */
     private static final int HANDSHAKE_DELAY_TICKS = 10;
 
     /** 玩家 UUID → 进服时的 tick 数，用来算握手延迟。 */
     private static final Map<UUID, Integer> PENDING = new HashMap<>();
 
-    @Override
-    public void onInitialize() {
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            ServerPlayer player = handler.player;
-            if (player != null) {
-                PENDING.put(player.getUUID(), server.getTickCount());
-            }
-        });
+    private ChatPingServer() {
+    }
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (handler.player != null) {
-                PENDING.remove(handler.player.getUUID());
-            }
-        });
+    /** 由加载器入口点在注册完平台实现之后调一次。 */
+    public static void init(Platform platform) {
+        // 1.20.5+ 的 Fabric 要先注册 payload 类型才能收发；其它实现里是空方法
+        platform.registerPayloads();
 
-        ServerTickEvents.END_SERVER_TICK.register(ChatPingServer::checkHandshake);
-
-        // 玩家每发一条聊天就记一笔账，顺手把被 @ 的人叮一下
-        ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
-            String content = message.signedContent();
-            if (content == null || content.isEmpty()) {
-                return;
-            }
-            // formatted 是原版加过 <名字> 前缀之后真正发出去的那串，编辑时要用它还原前缀
-            MessageLog.record(sender.getUUID(), Compat.profileName(sender.getGameProfile()),
-                    content, message.decoratedContent().getString());
-            dingMentioned(sender, content);
-        });
-
-        // 1.20.5+ 要先注册 payload 类型才能收发；老版本这个方法是空的
-        Net.registerPayloads();
+        platform.registerServerEvents(new ChatPingServer());
         ServerNetwork.register();
 
-        LOGGER.info("ChatPing server loaded: mention ding (vanilla-client friendly), message edit/delete, client mod required");
+        LOGGER.info("ChatPing server loaded: mention ding (vanilla-client friendly), "
+                + "message edit/delete, client mod required [{}]", platform.name());
+    }
+
+    // ------------------------------------------------------------------
+    // ServerHooks
+    // ------------------------------------------------------------------
+
+    @Override
+    public void onPlayerJoin(ServerPlayer player) {
+        MinecraftServer server = player.level().getServer();
+        if (server != null) {
+            PENDING.put(player.getUUID(), server.getTickCount());
+        }
+    }
+
+    @Override
+    public void onPlayerLeave(ServerPlayer player) {
+        PENDING.remove(player.getUUID());
+    }
+
+    @Override
+    public void onServerTick(MinecraftServer server) {
+        checkHandshake(server);
+    }
+
+    @Override
+    public void onChatMessage(ServerPlayer sender, String content, String decorated) {
+        if (content == null || content.isEmpty()) {
+            return;
+        }
+        // decorated 是原版加过 <名字> 前缀之后真正发出去的那串，编辑时要用它还原前缀
+        MessageLog.record(sender.getUUID(), Compat.profileName(sender.getGameProfile()), content, decorated);
+        dingMentioned(sender, content);
     }
 
     // ------------------------------------------------------------------

@@ -21,22 +21,22 @@ import net.minecraft.resources.ResourceLocation;
  * Stonecutter 的块注释里，而 Java 的块注释不能嵌套 —— 里面再放一个
  * {@code //? if} 会把外层注释提前闭合。所以分叉必须落在独立文件里。</p>
  */
-final class PayloadIds {
+public final class PayloadIds {
 
     private PayloadIds() {
     }
 
     //? if >=1.21.11 {
-    /*static Identifier id(String path) {
+    /*public static Identifier id(String path) {
         return Identifier.fromNamespaceAndPath("chatping", path);
     }
     *///?} else {
         //? if >=1.21 {
-        /*static ResourceLocation id(String path) {
+        /*public static ResourceLocation id(String path) {
             return ResourceLocation.fromNamespaceAndPath("chatping", path);
         }
         *///?} else {
-        static ResourceLocation id(String path) {
+        public static ResourceLocation id(String path) {
             return new ResourceLocation("chatping", path);
         }
         //?}

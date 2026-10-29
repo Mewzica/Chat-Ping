@@ -13,10 +13,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "dev.mewzica.chatping.server.ChatPingServer"
+      "dev.mewzica.chatping.platform.fabric.FabricEntry"
     ],
     "client": [
-      "dev.mewzica.chatping.ChatPingClient"
+      "dev.mewzica.chatping.platform.fabric.FabricEntry"
     ]
   },
   "mixins": [

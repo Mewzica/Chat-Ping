@@ -20,12 +20,12 @@ import net.minecraft.client.gui.GuiGraphics;
  * <p>调用方（{@link ChatPingHud} / {@link DeleteConfirm} / {@link PendingReply}）
  * 因此完全不用关心是哪个版本，一律传 {@code Object}。</p>
  */
-final class Draw {
+public final class Draw {
 
     private Draw() {
     }
 
-    static void fill(Object graphics, int left, int top, int right, int bottom, int color) {
+    public static void fill(Object graphics, int left, int top, int right, int bottom, int color) {
         //? if >=26.1 {
         /*((GuiGraphicsExtractor) graphics).fill(left, top, right, bottom, color);
         *///?} else {
@@ -33,7 +33,7 @@ final class Draw {
         //?}
     }
 
-    static void text(Object graphics, Font font, String text, int x, int y, int color) {
+    public static void text(Object graphics, Font font, String text, int x, int y, int color) {
         //? if >=26.1 {
         /*((GuiGraphicsExtractor) graphics).text(font, text, x, y, color);
         *///?} else {
@@ -42,7 +42,7 @@ final class Draw {
         //?}
     }
 
-    static void text(Object graphics, Font font, Component text, int x, int y, int color) {
+    public static void text(Object graphics, Font font, Component text, int x, int y, int color) {
         //? if >=26.1 {
         /*((GuiGraphicsExtractor) graphics).text(font, text, x, y, color);
         *///?} else {

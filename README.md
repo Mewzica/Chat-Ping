@@ -169,9 +169,16 @@ total. Two pieces make that possible:
   classic `fabric-loom`. Both are declared in `build.gradle` and exactly one is applied per
   version.
 
-Fabric is the primary loader and the only one shipping today. Quilt is planned to reuse the Fabric
-jar (Quilt Loader loads `fabric.mod.json` natively); Forge (≤ 1.20.4) and NeoForge still need a
-loader abstraction for networking and events.
+### Loaders
+
+**Fabric and Quilt share one jar.** Quilt Loader reads `fabric.mod.json` natively, so there is
+nothing to rebuild — install [Quilted Fabric API](https://modrinth.com/mod/qsl) in place of Fabric
+API and drop the same `chatping-<mod>-<mc>-fabric.jar` in. Shipping a second, byte-identical
+`-quilt.jar` would only put two identical files next to each other in a release, so this project
+does not.
+
+**Forge (≤ 1.20.4) and NeoForge** need a real port: a loader entry point, and a second networking
+implementation, because the payload API differs on every loader. That work is not done yet.
 
 Per-version build status is on the [Actions](https://github.com/Mewzica/Chat-Ping/actions) tab.
 

@@ -1,21 +1,10 @@
 package dev.mewzica.chatping.server;
 
-import dev.mewzica.chatping.Compat;
-import net.minecraft.world.entity.Entity;
+import dev.mewzica.chatping.platform.Platforms;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.lang.reflect.Method;
-
 /**
- * 权限检查，兼容 LuckPerms（以及任何实现了 {@code fabric-permissions-api} 的插件）。
- *
- * <p>为什么全程用反射，而不是直接 {@code import me.lucko.fabric.api.permissions.v0.Permissions}：</p>
- * <ul>
- *   <li>那个 API 是 LuckPerms 以 jar-in-jar 形式带进来的，<b>没装 LP 的服务器上根本不存在</b>。
- *       直接引用会在类加载阶段就抛 {@code NoClassDefFoundError}，服务端连启动都过不去；</li>
- *   <li>反射找不到类时静默回退到原版 op 等级判断，这样「装了 LP」和「没装 LP」
- *       是同一份 jar，服主不用为了权限功能换包。</li>
- * </ul>
+ * 权限检查。
  *
  * <p>两个节点的语义：</p>
  * <table border="1">
@@ -29,8 +18,12 @@ import java.lang.reflect.Method;
  * 拦下来只会让人没法喊人。所以节点管的是「谁能收到」：被配了这个节点的人
  * 才会在别人 {@code @admin} 时听到 ding。</p>
  *
- * <p>默认值就是 {@code Permissions.check(entity, node, defaultRequiredLevel)} 的第三个参数，
- * 没装权限插件时它等价于 {@code entity.hasPermissionLevel(level)}。</p>
+ * <p>真正查权限的代码在各个 {@code Platform} 实现里，因为每个加载器的权限插件
+ * 长得完全不一样：Fabric 走 {@code fabric-permissions-api}，Forge / NeoForge 走
+ * {@code net.luckperms.api.LuckPermsProvider}。这里只留节点名和统一的调用入口。</p>
+ *
+ * <p>全程用反射的原因没变：权限 API 是权限插件以 jar-in-jar 形式带进来的，
+ * <b>没装插件的服务器上根本不存在</b>，直接引用会让服务端连启动都过不去。</p>
  */
 public final class NodePermissions {
 
@@ -40,12 +33,6 @@ public final class NodePermissions {
     /** 接收 {@code @admin} 群体提及。 */
     public static final String ADMIN_MENTION = "chatping.admin.mention";
 
-    private static final String API_CLASS = "me.lucko.fabric.api.permissions.v0.Permissions";
-
-    /** 反射拿到的 {@code check(Entity, String, int)}；null 表示环境里没有权限插件。 */
-    private static Method checkMethod;
-    private static boolean resolved;
-
     private NodePermissions() {
     }
 
@@ -53,32 +40,6 @@ public final class NodePermissions {
      * @param defaultLevel 没装权限插件时要求的 op 等级（0 表示所有人）
      */
     public static boolean check(ServerPlayer player, String node, int defaultLevel) {
-        Method method = method();
-        if (method != null) {
-            try {
-                Object result = method.invoke(null, player, node, defaultLevel);
-                if (result instanceof Boolean value) {
-                    return value;
-                }
-            } catch (Throwable ignored) {
-                // 权限插件内部炸了不能带着聊天功能一起挂，退回原版判断
-            }
-        }
-        return Compat.hasOpLevel(player, defaultLevel);
-    }
-
-    /** 只解析一次，之后复用同一个 {@link Method}。 */
-    private static synchronized Method method() {
-        if (resolved) {
-            return checkMethod;
-        }
-        resolved = true;
-        try {
-            Class<?> api = Class.forName(API_CLASS);
-            checkMethod = api.getMethod("check", Entity.class, String.class, int.class);
-        } catch (Throwable ignored) {
-            checkMethod = null;
-        }
-        return checkMethod;
+        return Platforms.get().hasPermission(player, node, defaultLevel);
     }
 }
