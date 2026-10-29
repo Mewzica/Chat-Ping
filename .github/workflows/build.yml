@@ -64,9 +64,19 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build ${{ matrix.mc }}
-        run: ./gradlew :${{ matrix.mc }}:build --stacktrace
+        id: build
+        continue-on-error: true
+        run: ./gradlew :${{ matrix.mc }}:build --stacktrace 2>&1 | tee gradle-build.log
+
+      # 拿不到 job 日志时，把失败尾巴打成 annotation —— annotation 是公开可读的
+      - name: Report failure
+        if: steps.build.outcome == 'failure'
+        run: |
+          tail -c 3500 gradle-build.log | sed 's/^/::error::/'
+          exit 1
 
       - name: Upload jar
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: chatping-${{ matrix.mc }}

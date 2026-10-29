@@ -35,6 +35,12 @@ base {
 }
 
 repositories {
+    // Fabric 的 maven：minecraft / mappings / loader / fabric-api 都在这里。
+    // 本地有缓存时就算不写也能过，干净环境（CI）会直接解析失败，所以必须显式声明。
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
     mavenCentral()
 }
 
