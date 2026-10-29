@@ -2,38 +2,66 @@ package dev.mewzica.chatping.mixin;
 
 import dev.mewzica.chatping.ChatFormat;
 import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(net.minecraft.client.gui.screens.Screen.class)
+//? if <1.21.11 {
+/*import net.minecraft.client.gui.screens.Screen;
+*///?}
+
+/**
+ * 聊天里点 {@code @名字} 的时候，原版会把输入框内容整个换成建议文本。
+ * 这里改成「往当前输入框里追加」，避免把已经打了一半的内容冲掉。
+ *
+ * <p><b>注入点跨版本变过一次</b>，所以这个文件有两套实现，类名保持一致
+ * （{@code chatping.mixins.json} 里只写了一个 {@code ScreenMixin}）：</p>
+ * <ul>
+ *   <li><b>1.20.1 ~ 1.21.10</b>：{@code Screen#handleComponentClicked(Style)}，
+ *       所有界面共用，所以要自己判断 {@code this} 是不是 {@link ChatScreen}；</li>
+ *   <li><b>1.21.11 起</b>：这个方法从 {@code Screen} 挪到了 {@code ChatScreen}，
+ *       而且多了一个 {@code insertionClickMode} 参数。</li>
+ * </ul>
+ *
+ * <p>取点击事件里的文本统一交给 {@link ChatFormat#clickSuggestion(Style)}，
+ * 那边处理 {@code ClickEvent} 在 1.21.5 的改版。</p>
+ */
+//? if <1.21.11 {
+/*@Mixin(Screen.class)
 public abstract class ScreenMixin {
 
-    /**
-     * 聊天里点 @名字 的时候，原版只会走 SUGGEST_COMMAND 那套（会用新文本顶掉整个输入框）。
-     * 这里改成往当前输入框里追加，避免把已经打了一半的内容冲掉。
-     */
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
     private void chatping$onTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
         if (!((Object) this instanceof ChatScreen)) {
             return;
         }
-        if (style == null) {
+        String insert = ChatFormat.clickSuggestion(style);
+        if (insert == null) {
             return;
         }
-        ClickEvent click = style.getClickEvent();
-        if (click == null || click.getAction() != ClickEvent.Action.SUGGEST_COMMAND) {
-            return;
-        }
-        String value = click.getValue();
-        if (value == null || !value.startsWith(ChatFormat.CLICK_MARKER)) {
-            return;
-        }
-        ((ChatScreenInvoker) (Object) this).chatping$insertText(
-                value.substring(ChatFormat.CLICK_MARKER.length()), false);
+        ((ChatScreenInvoker) (Object) this).chatping$insertText(insert, false);
         cir.setReturnValue(true);
     }
 }
+*///?} else {
+@Mixin(ChatScreen.class)
+public abstract class ScreenMixin {
+
+    @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
+    private void chatping$onTextClick(Style style, boolean insertionClickMode,
+                                      CallbackInfoReturnable<Boolean> cir) {
+        // insertionClickMode 是原版「点击就插入」那条路，交给它自己处理。
+        if (insertionClickMode) {
+            return;
+        }
+        String insert = ChatFormat.clickSuggestion(style);
+        if (insert == null) {
+            return;
+        }
+        ((ChatScreenInvoker) (Object) this).chatping$insertText(insert, false);
+        cir.setReturnValue(true);
+    }
+}
+//?}

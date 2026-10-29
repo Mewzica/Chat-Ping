@@ -22,9 +22,23 @@ if (fabricApiVersion == null) {
     throw new GradleException("versions/${mcVersion}/gradle.properties 缺少 fabric_api_version")
 }
 
-// MC 1.20.5 起要求 Java 21；1.20.1~1.20.4 还是 Java 17
-def javaVersion = (mcVersion == '1.20.1' || mcVersion == '1.20.2'
-        || mcVersion == '1.20.3' || mcVersion == '1.20.4') ? 17 : 21
+/** 版本专属的 loader 覆盖（26.x 需要 0.20.x），没写就用根目录那个。 */
+def loaderVersion = versionProps.getProperty('loader_version') ?: project.loader_version
+
+/**
+ * 26.x 的 jar 是**不混淆**的（Mojang 从 26.1 起直接发真名，所以也不再发 mappings）。
+ * 这带来两个后果：
+ *   1. 不需要任何 mappings，写了反而会去拉一个不存在的文件；
+ *   2. 依赖用 implementation 而不是 modImplementation —— 没有 intermediary，
+ *      Loom 那一层 remap 就没有意义了。
+ * 参见 FabricMC/fabric-example-mod 的 gradle.properties：minecraft_version=26.3 那套。
+ */
+def unobfuscated = mcVersion.startsWith('26.')
+
+// MC 1.20.5 起要求 Java 21；1.20.1~1.20.4 还是 Java 17；26.x 要求 Java 25
+def javaVersion = unobfuscated ? 25
+        : ((mcVersion == '1.20.1' || mcVersion == '1.20.2'
+        || mcVersion == '1.20.3' || mcVersion == '1.20.4') ? 17 : 21)
 
 // 产物名：chatping-<mod版本>-<MC版本>-<加载器>
 version = "${project.mod_version}-${mcVersion}-${project.mod_loader}"
@@ -46,11 +60,17 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${mcVersion}"
-    // 统一用 Mojang 官方映射：yarn 只到 1.21.11，26.x 没有 yarn，
-    // 而两套命名的类名完全不同，不可能靠 //? if 逐行切换。
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+    if (unobfuscated) {
+        // 26.x 本身就不混淆，没有 mappings 可拉，也不需要 remap。
+        implementation "net.fabricmc:fabric-loader:${loaderVersion}"
+        implementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+    } else {
+        // 其余版本统一用 Mojang 官方映射：yarn 只到 1.21.11，26.x 没有 yarn，
+        // 而两套命名的类名完全不同，不可能靠 //? if 逐行切换。
+        mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:${loaderVersion}"
+        modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+    }
 }
 
 processResources {

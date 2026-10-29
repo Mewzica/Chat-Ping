@@ -8,7 +8,6 @@ import net.minecraft.server.level.ServerPlayer;
 /*import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 *///?} else {
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -55,12 +54,11 @@ public final class Net {
     // 1.20.5+：CustomPacketPayload + StreamCodec
     // ==============================================================
 
-    private static ResourceLocation id(String path) {
-        return PayloadIds.id(path);
-    }
+    // id 的类型在 1.21.11 从 ResourceLocation 改名成了 Identifier，
+    // 分叉放在 PayloadIds 里（这里整段在块注释中，没法再嵌 //? if）。
 
     public record Handshake(boolean canDeleteOthers) implements CustomPacketPayload {
-        public static final Type<Handshake> TYPE = new Type<>(id("handshake"));
+        public static final Type<Handshake> TYPE = new Type<>(PayloadIds.id("handshake"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Handshake> CODEC = StreamCodec.of(
                 (buf, v) -> buf.writeBoolean(v.canDeleteOthers()),
                 buf -> new Handshake(buf.readBoolean()));
@@ -72,7 +70,7 @@ public final class Net {
     }
 
     public record Edit(String oldBody, String newText) implements CustomPacketPayload {
-        public static final Type<Edit> TYPE = new Type<>(id("edit"));
+        public static final Type<Edit> TYPE = new Type<>(PayloadIds.id("edit"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Edit> CODEC = StreamCodec.of(
                 (buf, v) -> {
                     buf.writeUtf(v.oldBody());
@@ -87,7 +85,7 @@ public final class Net {
     }
 
     public record Purge(String senderName, String body, String display) implements CustomPacketPayload {
-        public static final Type<Purge> TYPE = new Type<>(id("purge"));
+        public static final Type<Purge> TYPE = new Type<>(PayloadIds.id("purge"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Purge> CODEC = StreamCodec.of(
                 (buf, v) -> {
                     buf.writeUtf(v.senderName());
@@ -103,7 +101,7 @@ public final class Net {
     }
 
     public record Update(String senderName, String oldBody, String newRaw) implements CustomPacketPayload {
-        public static final Type<Update> TYPE = new Type<>(id("update"));
+        public static final Type<Update> TYPE = new Type<>(PayloadIds.id("update"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Update> CODEC = StreamCodec.of(
                 (buf, v) -> {
                     buf.writeUtf(v.senderName());
@@ -119,7 +117,7 @@ public final class Net {
     }
 
     public record Remove(String display) implements CustomPacketPayload {
-        public static final Type<Remove> TYPE = new Type<>(id("remove"));
+        public static final Type<Remove> TYPE = new Type<>(PayloadIds.id("remove"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Remove> CODEC = StreamCodec.of(
                 (buf, v) -> buf.writeUtf(v.display()),
                 buf -> new Remove(buf.readUtf()));
@@ -186,11 +184,11 @@ public final class Net {
 
     public static void registerServerReceivers() {
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Edit.TYPE,
-                (payload, context) -> context.server().execute(() -> ServerNetwork.onEditRequest(
-                        context.server(), context.player(), payload.oldBody(), payload.newText())));
+                (payload, context) -> context.player().server.execute(() -> ServerNetwork.onEditRequest(
+                        context.player().server, context.player(), payload.oldBody(), payload.newText())));
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(Purge.TYPE,
-                (payload, context) -> context.server().execute(() -> ServerNetwork.onPurgeRequest(
-                        context.server(), context.player(), payload.senderName(), payload.body(), payload.display())));
+                (payload, context) -> context.player().server.execute(() -> ServerNetwork.onPurgeRequest(
+                        context.player().server, context.player(), payload.senderName(), payload.body(), payload.display())));
     }
     *///?} else {
 

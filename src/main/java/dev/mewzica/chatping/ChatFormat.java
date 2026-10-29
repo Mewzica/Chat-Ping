@@ -172,10 +172,46 @@ public final class ChatFormat {
     private static Style mentionStyle(Style base, String name, boolean forMe) {
         boolean group = !forMe && isAdminGroup(name);
         TextColor color = forMe ? MENTION_ME : (group ? MENTION_ADMIN : MENTION_OTHER);
-        return base.withColor(color)
-                .withBold(forMe || group)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                        CLICK_MARKER + "@" + name + " "));
+        Style styled = base.withColor(color).withBold(forMe || group);
+        String suggestion = CLICK_MARKER + "@" + name + " ";
+        // ClickEvent 在 1.21.5 从「一个类 + Action 枚举」改成了 sealed 接口 + 一堆 record 子类，
+        // 构造器没了，只能 new 具体子类。
+        //? if >=1.21.5 {
+        /*return styled.withClickEvent(new ClickEvent.SuggestCommand(suggestion));
+        *///?} else {
+        return styled.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, suggestion));
+        //?}
+    }
+
+    /**
+     * 如果这个样式带着「点了就往输入框插 @名字」的点击事件，返回要插入的文本；否则 null。
+     *
+     * <p>取值的写法也跟着 {@code ClickEvent} 的改版分叉：老版本是
+     * {@code getAction()/getValue()}，1.21.5 起得先判子类型再取 {@code command()}。</p>
+     */
+    public static String clickSuggestion(Style style) {
+        if (style == null) {
+            return null;
+        }
+        ClickEvent click = style.getClickEvent();
+        if (click == null) {
+            return null;
+        }
+        //? if >=1.21.5 {
+        /*if (!(click instanceof ClickEvent.SuggestCommand suggest)) {
+            return null;
+        }
+        String value = suggest.command();
+        *///?} else {
+        if (click.getAction() != ClickEvent.Action.SUGGEST_COMMAND) {
+            return null;
+        }
+        String value = click.getValue();
+        //?}
+        if (value == null || !value.startsWith(CLICK_MARKER)) {
+            return null;
+        }
+        return value.substring(CLICK_MARKER.length());
     }
 
     /**
