@@ -222,4 +222,4 @@ in `en_us.json`; anything missing falls back to English.
 
 ## License
 
-MIT
+This project is licensed under the MIT License.

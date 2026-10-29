@@ -56,7 +56,7 @@ public final class Net {
     // ==============================================================
 
     private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("chatping", path);
+        return PayloadIds.id(path);
     }
 
     public record Handshake(boolean canDeleteOthers) implements CustomPacketPayload {
