@@ -1,0 +1,84 @@
+plugins {
+    id 'fabric-loom' version '1.19.3'
+}
+
+// ---------------------------------------------------------------------------
+// Stonecutter 会给每个「MC 版本 × 加载器」节点各应用一遍这个脚本，
+// 所以这里的 project 就是某个具体版本，而不是根项目。
+// ---------------------------------------------------------------------------
+
+/** 当前节点的 MC 版本，例如 1.20.1 / 1.21.4 / 26.3 */
+def mcVersion = stonecutter.current.version
+
+/** 每个版本自己的依赖版本，放在 versions/<节点>/gradle.properties */
+def versionProps = new Properties()
+def versionPropsFile = rootProject.file("versions/${mcVersion}/gradle.properties")
+if (versionPropsFile.exists()) {
+    versionPropsFile.withInputStream { versionProps.load(it) }
+}
+
+def fabricApiVersion = versionProps.getProperty('fabric_api_version')
+if (fabricApiVersion == null) {
+    throw new GradleException("versions/${mcVersion}/gradle.properties 缺少 fabric_api_version")
+}
+
+// MC 1.20.5 起要求 Java 21；1.20.1~1.20.4 还是 Java 17
+def javaVersion = (mcVersion == '1.20.1' || mcVersion == '1.20.2'
+        || mcVersion == '1.20.3' || mcVersion == '1.20.4') ? 17 : 21
+
+// 产物名：chatping-<mod版本>-<MC版本>-<加载器>
+version = "${project.mod_version}-${mcVersion}-${project.mod_loader}"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcVersion}"
+    // 统一用 Mojang 官方映射：yarn 只到 1.21.11，26.x 没有 yarn，
+    // 而两套命名的类名完全不同，不可能靠 //? if 逐行切换。
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+}
+
+processResources {
+    inputs.property "version", project.mod_version
+    inputs.property "minecraft_version", mcVersion
+    filesMatching("fabric.mod.json") {
+        expand "version": project.mod_version
+    }
+}
+
+loom {
+    runs {
+        server {
+            runDir rootProject.file('run-server').absolutePath
+        }
+        client {
+            runDir rootProject.file('run').absolutePath
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = javaVersion
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+    targetCompatibility = JavaVersion.toVersion(javaVersion)
+}
+
+jar {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}

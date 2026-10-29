@@ -1,0 +1,53 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        maven {
+            name = 'Kikugie'
+            url = 'https://maven.kikugie.dev/releases'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'dev.kikugie.stonecutter' version '0.9.8'
+}
+
+// 一个节点 = 一个「MC 版本 × 加载器」组合。
+// 节点名就是子项目名，也是产物目录名（versions/<节点>/build/libs/）。
+//
+// MC 1.20.1 以上的全部正式版（不含快照 / 预发布），共 23 个。
+// 每新增一个版本，还要在 versions/<版本>/gradle.properties 里写 fabric_api_version。
+stonecutter {
+    create(rootProject) {
+        version '1.20.1', '1.20.1'
+        version '1.20.2', '1.20.2'
+        version '1.20.3', '1.20.3'
+        version '1.20.4', '1.20.4'
+        version '1.20.5', '1.20.5'
+        version '1.20.6', '1.20.6'
+        version '1.21', '1.21'
+        version '1.21.1', '1.21.1'
+        version '1.21.2', '1.21.2'
+        version '1.21.3', '1.21.3'
+        version '1.21.4', '1.21.4'
+        version '1.21.5', '1.21.5'
+        version '1.21.6', '1.21.6'
+        version '1.21.7', '1.21.7'
+        version '1.21.8', '1.21.8'
+        version '1.21.9', '1.21.9'
+        version '1.21.10', '1.21.10'
+        version '1.21.11', '1.21.11'
+        version '26.1', '26.1'
+        version '26.1.1', '26.1.1'
+        version '26.1.2', '26.1.2'
+        version '26.2', '26.2'
+        version '26.3', '26.3'
+    }
+}
+
+rootProject.name = 'chatping'

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "chatping",
+  "version": "${version}",
+  "name": "ChatPing",
+  "description": "在聊天里用 @玩家名 提及别人，被提及的玩家会听到一声提示音，输入 @ 时有在线玩家自动补全；鼠标悬停在任意聊天消息上会出现 @ / 回复 / 编辑 / 删除 按钮，回复会把原文引用到消息上方。服务端装了之后 ding 由服务端发（原版客户端也能听到），并且要求客户端也装本模组。",
+  "authors": [
+    "Mewzica"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/chatping/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.mewzica.chatping.server.ChatPingServer"
+    ],
+    "client": [
+      "dev.mewzica.chatping.ChatPingClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "chatping.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.20.1",
+    "java": ">=17"
+  },
+  "recommends": {
+    "luckperms": "*"
+  }
+}

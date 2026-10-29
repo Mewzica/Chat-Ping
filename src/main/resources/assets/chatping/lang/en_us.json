@@ -1,0 +1,16 @@
+{
+  "chatping.delete.title": "Delete this message?",
+  "chatping.delete.subtitle.system": "System message",
+  "chatping.delete.subtitle.player": "from %s",
+  "chatping.delete.confirm": "Delete",
+  "chatping.delete.cancel": "Cancel",
+
+  "chatping.edit.banner": "\u270E Editing message",
+
+  "chatping.error.too_long": "Message too long (max %s characters)",
+  "chatping.error.not_found": "That message is gone (too old)",
+  "chatping.error.not_owner": "You can only delete your own messages",
+  "chatping.error.not_admin": "Only admins can delete this message",
+
+  "chatping.kick.required": "This server requires the ChatPing mod.\nPlease install it and reconnect."
+}

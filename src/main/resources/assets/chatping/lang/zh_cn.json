@@ -1,0 +1,16 @@
+{
+  "chatping.delete.title": "删除这条消息？",
+  "chatping.delete.subtitle.system": "系统消息",
+  "chatping.delete.subtitle.player": "来自 %s",
+  "chatping.delete.confirm": "删除",
+  "chatping.delete.cancel": "取消",
+
+  "chatping.edit.banner": "\u270E 正在编辑消息",
+
+  "chatping.error.too_long": "消息太长了，最多 %s 个字符",
+  "chatping.error.not_found": "找不到这条消息了，可能已经过去太久",
+  "chatping.error.not_owner": "只能删除自己发的消息",
+  "chatping.error.not_admin": "只有管理员能删除这条消息",
+
+  "chatping.kick.required": "此服务器要求安装 ChatPing 模组。\n请装好后再进。"
+}

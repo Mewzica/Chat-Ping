@@ -1,0 +1,21 @@
+# 仓库里的换行符必须统一成 LF，否则 Linux 上的 CI 跑不了 ./gradlew
+* text=auto eol=lf
+
+*.java   text eol=lf
+*.gradle text eol=lf
+*.kts    text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.md     text eol=lf
+*.properties text eol=lf
+gradlew  text eol=lf
+
+# Windows 批处理必须 CRLF
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+
+# 二进制
+*.jar    binary
+*.png    binary
+*.zip    binary
