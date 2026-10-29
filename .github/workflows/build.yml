@@ -59,6 +59,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # 仓库是在 Windows 上建的，可执行位有时候会丢，这里兜一下
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Build ${{ matrix.mc }}
         run: ./gradlew :${{ matrix.mc }}:build --stacktrace
 
